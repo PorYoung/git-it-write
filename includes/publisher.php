@@ -35,7 +35,7 @@ class GIW_Publisher{
     public $default_post_meta = array(
         'sha' => '',
         'github_url' => '',
-		'item_slug' => '',
+        'item_slug' => '',
 		'item_slug_clean' => ''
     );
 
@@ -115,7 +115,7 @@ class GIW_Publisher{
 
     public function get_post_meta( $post_id ){
 
-		GIW_Utils::log( sprintf('Getting post meta for post %s', $post_id) );
+        GIW_Utils::log( sprintf('Getting post meta for post %s', $post_id) );
 		
 		//foreach(get_post_meta($post_id) as $metaitem_key => $metaitem){
 		//	GIW_Utils::log( sprintf('Meta retrieved %s = %s', $metaitem_key, implode(',',$metaitem)) );
@@ -123,9 +123,9 @@ class GIW_Publisher{
 		
 		
         $current_meta = get_post_meta( $post_id, '', false );
-		
-        $metadata = array();
 
+        $metadata = array();
+		
         if( !is_array( $current_meta ) ){
             return $this->default_post_meta;
         }
@@ -142,16 +142,16 @@ class GIW_Publisher{
     }
 
     public function create_post( $post_id, $item_slug, $item_props, $parent ){
-		
-		//GIW_Utils::log( sprintf('Creating post with these parameters: id= [%s], slug= [%s], props= [%s], parent= [%s] ', $post_id, $item_slug, implode(', ', $item_props), $parent));
 
-        GIW_Utils::log( sprintf( '---------- Checking post [%s] under parent [%s] ----------', $post_id, $parent ) );
+       //GIW_Utils::log( sprintf('Creating post with these parameters: id= [%s], slug= [%s], props= [%s], parent= [%s] ', $post_id, $item_slug, implode(', ', $item_props), $parent));
 
-        // If post exists, check if it has changed and proceed further
-        if( $post_id && $item_props ){
+       GIW_Utils::log( sprintf( '---------- Checking post [%s] under parent [%s] ----------', $post_id, $parent ) );
 
-            $post_meta = $this->get_post_meta( $post_id );
-			GIW_Utils::log(sprintf('Post meta = [%s]', implode(",", $post_meta)));
+       // If post exists, check if it has changed and proceed further
+       if( $post_id && $item_props ){
+
+           $post_meta = $this->get_post_meta( $post_id );
+           GIW_Utils::log(sprintf('Post meta = [%s]', implode(",", $post_meta)));
 
             if( $post_meta[ 'sha' ] == $item_props[ 'sha' ] ){
                 GIW_Utils::log( 'Post is unchanged' );
@@ -186,7 +186,18 @@ class GIW_Publisher{
             $post_status = empty( $front_matter[ 'post_status' ] ) ? 'publish' : $front_matter[ 'post_status' ];
             $post_excerpt = empty( $front_matter[ 'post_excerpt' ] ) ? '' : $front_matter[ 'post_excerpt' ];
             $menu_order = empty( $front_matter[ 'menu_order' ] ) ? 0 : $front_matter[ 'menu_order' ];
-            $taxonomy = $front_matter[ 'taxonomy' ];
+            /* 
+             * Modified by PorYoung
+             */
+            $post_date= $front_matter[ 'date' ];
+            $post_modified= $front_matter[ 'post_modified' ];
+            if (!empty($front_matter[ 'taxonomy' ])){
+                $taxonomy = $front_matter[ 'taxonomy' ];
+            }else{
+                $taxonomy = array( 'category'=>$front_matter[ 'categories' ], 'post_tag'=>$front_matter[ 'tags' ] );
+            }
+            /* End */
+
             $custom_fields = $front_matter[ 'custom_fields' ];
             
             $sha = $item_props[ 'sha' ];
@@ -206,7 +217,7 @@ class GIW_Publisher{
             $github_url = '';
         }
 
-		$item_slug_clean = sanitize_title( $item_slug );
+        $item_slug_clean = sanitize_title( $item_slug );
         $meta_input = array_merge( $custom_fields, array(
             'sha' => $sha,
             'github_url' => $github_url,
@@ -229,7 +240,15 @@ class GIW_Publisher{
             'meta_input' => $meta_input
         );
 
-		GIW_Utils::log( sprintf('Inserting the new post [%s]', implode(",", $post_details)) );
+        GIW_Utils::log( sprintf('Inserting the new post [%s]', implode(",", $post_details)) );
+
+        if (!empty($post_date)){
+            $post_details[ 'post_date' ] = $post_date;
+        }
+        if (!empty($post_modified)){
+            $post_details[ 'post_modified' ] = $post_modified;
+        }
+
         $new_post_id = wp_insert_post( $post_details );
 
         if( is_wp_error( $new_post_id ) || empty( $new_post_id ) ){
@@ -238,8 +257,8 @@ class GIW_Publisher{
             return false;
         }else{
             GIW_Utils::log( '---------- Published post: ' . $new_post_id . ' ----------' );
-			
-			update_post_meta($new_post_id, 'item_slug', $item_slug);
+
+            update_post_meta($new_post_id, 'item_slug', $item_slug);
 			update_post_meta($new_post_id, 'item_slug_clean', $item_slug_clean);
 			
 			GIW_Utils::log( '---- Post Meta updated : ' . $new_post_id . ' ----------' );
@@ -278,8 +297,8 @@ class GIW_Publisher{
             GIW_Utils::log( 'At repository item - ' . $item_slug);
 
             $first_character = substr( $item_slug, 0, 1 );
-            if( in_array( $first_character, array( '_', '.' ) ) ){
-                GIW_Utils::log( 'Items starting with _ . are skipped for publishing' );
+            if( in_array( $first_character, array( '.', '!' ) ) ){
+                GIW_Utils::log( 'Items starting with . ! are skipped for publishing' );
                 continue;
             }
 
@@ -350,7 +369,7 @@ class GIW_Publisher{
 
         $images_dir = $this->repository->structure[ '_images' ];
         $images = $images_dir[ 'items' ];
-		GIW_Utils::log( sprintf( 'Images to process [%s]', implode(',', $images) ) );
+        GIW_Utils::log( sprintf( 'Images to process [%s]', implode(',', $images) ) );
 
         foreach( $images as $image_slug => $image_props ){
             GIW_Utils::log( sprintf( 'Starting image [%s]', $image_slug ) );
@@ -362,7 +381,7 @@ class GIW_Publisher{
             GIW_Utils::log( 'Uploading image ' . $image_slug );
             GIW_Utils::log( $image_props );
 
-			$image_raw_url = $image_props[ 'raw_url' ];
+            $image_raw_url = $image_props[ 'raw_url' ];
 			//$image_raw_url = $image_props[ 'raw_url_private_repo' ];
 			GIW_Utils::log( sprintf( 'Image raw url = [%s]', $image_raw_url ) );
 			
@@ -380,30 +399,30 @@ class GIW_Publisher{
 						GIW_Utils::log( 'Image failed upload. Error: ' . $uploaded_image_url->get_error_message() );
 					}
 
-					// Check if image is uploaded correctly and 
-					if( !empty( $uploaded_image_url ) ){
+            // Check if image is uploaded correctly and 
+            if( !empty( $uploaded_image_url ) ){
 
-						GIW_Utils::log( 'Image is uploaded ' . $uploaded_image_url . ' ' . $uploaded_image_id );
+                GIW_Utils::log( 'Image is uploaded ' . $uploaded_image_url . ' ' . $uploaded_image_id );
 
-						$uploaded_images[ $image_slug ] = array(
-							'url' => $uploaded_image_url,
-							'id' => $uploaded_image_id
-						);
+                $uploaded_images[ $image_slug ] = array(
+                    'url' => $uploaded_image_url,
+                    'id' => $uploaded_image_id
+                );
 
-						if( !update_option( 'giw_uploaded_images', $uploaded_images ) ){
-							GIW_Utils::log( 'Updated uploaded images cache' );
-						}
+                if( !update_option( 'giw_uploaded_images', $uploaded_images ) ){
+                    GIW_Utils::log( 'Updated uploaded images cache' );
+                }
 
-						$this->stats[ 'images' ][ 'uploaded' ][ $uploaded_image_id ] = $uploaded_image_url;
+                $this->stats[ 'images' ][ 'uploaded' ][ $uploaded_image_id ] = $uploaded_image_url;
 
-					}else{
-						GIW_Utils::log( 'Image upload failed for some reason' . $uploaded_image_url->get_error_message() );
+            }else{
+                GIW_Utils::log( 'Image upload failed for some reason' . $uploaded_image_url->get_error_message() );
 					}
 				}
 			} catch (\Throwable $e) {
 				GIW_Utils::log( 'Unexpected exception. Error: ' . $e->getMessage() );
 			}
-			
+
 
         }
 
