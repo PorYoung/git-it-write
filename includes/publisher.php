@@ -240,7 +240,7 @@ class GIW_Publisher{
             'meta_input' => $meta_input
         );
 
-        GIW_Utils::log( sprintf('Inserting the new post [%s]', implode(",", $post_details)) );
+        GIW_Utils::log( sprintf('Inserting the new post [%s]', implode(",", $post_title)) );
 
         if (!empty($post_date)){
             $post_details[ 'post_date' ] = $post_date;
