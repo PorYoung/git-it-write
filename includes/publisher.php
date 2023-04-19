@@ -204,9 +204,11 @@ class GIW_Publisher{
 
             $custom_fields = $front_matter[ 'custom_fields' ];
 
-            $post_date = '';
-            if( !empty( $front_matter[ 'post_date' ] ) ){
-                $post_date = GIW_Utils::process_date( $front_matter[ 'post_date' ] );
+            if (empty($post_date)){
+                $post_date = '';
+                if( !empty( $front_matter[ 'post_date' ] ) ){
+                    $post_date = GIW_Utils::process_date( $front_matter[ 'post_date' ] );
+                }
             }
 
             $sha = $item_props[ 'sha' ];
@@ -218,6 +220,7 @@ class GIW_Publisher{
             $post_status = 'publish';
             $post_excerpt = '';
             $post_date = '';
+            $post_modified = '';
             $menu_order = 0;
             $page_template = '';
             $comment_status = '';
@@ -256,6 +259,7 @@ class GIW_Publisher{
             'post_excerpt' => $post_excerpt,
             'post_parent' => $parent,
             'post_date' => $post_date,
+            'post_modified' => $post_modified,
             'page_template' => $page_template,
             'comment_status' => $comment_status,
             'menu_order' => $menu_order,
@@ -264,17 +268,10 @@ class GIW_Publisher{
 
         GIW_Utils::log( sprintf('Inserting the new post [%s]', implode(",", $post_title)) );
 
-        if (!empty($post_date)){
-            $post_details[ 'post_date' ] = $post_date;
-        }
-        if (!empty($post_modified)){
-            $post_details[ 'post_modified' ] = $post_modified;
-        }
-
         $new_post_id = wp_insert_post( $post_details );
 
         if( is_wp_error( $new_post_id ) || empty( $new_post_id ) ){
-            GIW_Utils::log( 'Failed to publish post - ' . $new_post_id );
+            GIW_Utils::log( 'Failed to publish post - ' . $new_post_id->get_error_message() );
             $this->stats[ 'posts' ][ 'failed' ]++;
             return false;
         }else{
@@ -429,11 +426,7 @@ class GIW_Publisher{
 
             }else{
                 GIW_Utils::log( 'Image upload failed for some reason' . $uploaded_image_url->get_error_message() );
-					}
-				}
-			} catch (\Throwable $e) {
-				GIW_Utils::log( 'Unexpected exception. Error: ' . $e->getMessage() );
-			}
+                }
 
 
         }
